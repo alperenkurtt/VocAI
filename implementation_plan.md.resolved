@@ -1,0 +1,62 @@
+# Yapay Zeka Destekli Çoklu Ajanlı İngilizce Öğrenme Sistemi - Uygulama Planı
+
+Bu belge, mezuniyet projesi öneri formunuzda açıklanan yapay zeka destekli, çoklu ajanlı İngilizce öğrenme sisteminin adım adım geliştirme planını içermektedir.
+
+## 🎯 Proje Hedefi
+
+Amaç, çoklu ajan (multi-agent) mimarisi kullanan, ölçeklenebilir ve bağlama duyarlı bir İngilizce öğrenme platformu oluşturmaktır. Sistem, LangGraph ile yönetilen, gücünü OpenRouter üzerinden bağlanan LLM'lerden alan, vektör depolama (hafıza/RAG) için AstraDB'yi kullanan ve Streamlit arayüzü ile sunulan 5 uzman yapay zeka ajanından oluşacaktır.
+
+## ⚠️ Mimari Kararlar
+
+> [!IMPORTANT]  
+> Aşağıdaki mimari kararlar netleşmiştir:
+> - **LangGraph:** Çoklu ajan yönetiminde tam kod kontrolü sağlamak ve Streamlit ile kusursuz entegrasyon kurmak için **doğrudan Python üzerinden LangGraph** kullanılacaktır.
+> - **Modüler Geliştirme (V1 ve V2):** Projenin ilk sürümü (V1) Dinleme (Listening) dışındaki 4 temel beceriyle (Okuma, Yazma, Dilbilgisi, Kelime Bilgisi) inşa edilecek, **Metinden Sese (TTS) ve Dinleme modülü daha sonra 2. Faz (V2) olarak sisteme eklenecektir.** Ajan mimarisi esnek kurulacağı için bu durum sistemi kesinlikle **bozmayacaktır**.
+
+---
+
+## 🛠️ Önerilen Mimari ve Geliştirme Aşamaları
+
+### 1. Aşama: Ortam Kurulumu ve Altyapı
+- Python ortamının (v3.10+) başlatılması ve bağımlılıkların yüklenmesi (`streamlit`, `langchain`, `langgraph`, `astrapy`, `openai` / OpenRouter için `requests`).
+- GitHub depo (repository) yapısının oluşturulması.
+- AstraDB bağlantısının yapılandırılması ve gerekli koleksiyonların oluşturulması (örn. `kullanici_profilleri`, `oturum_gecmisi`, `hata_kayitlari`).
+
+### 2. Aşama: Temel Ajan Geliştirme (LangGraph)
+5 uzman ajanı, LangGraph durum makinesindeki (state machine) düğümler (nodes) olarak geliştireceğiz.
+- **Ajan 1 (Seviye Tespiti):** Kullanıcının başlangıç CEFR seviyesini (A1-C2) belirlemek için dinamik bir soru-cevap oturumu yürütür.
+- **Ajan 2 (Müfredat Planlayıcı):** AstraDB verilerini (zayıf yönleri) analiz eder ve kullanıcıya özel günlük öğrenme modülü sunar.
+- **Ajan 3 (İçerik Üretici):** Ajan 2'nin modülünü temel alarak okuma metinleri, dilbilgisi kuralları ve etkileşimli alıştırmalar oluşturur.
+- **Ajan 4 (Değerlendirici ve RAG):** Kullanıcı yanıtlarını değerlendirir. Kişiselleştirilmiş geri bildirim ve açıklamalar sunmak için RAG kullanarak AstraDB'den geçmişte tekrarlanan hataları getirir.
+- **Ajan 5 (Gelişim Takipçisi):** Veritabanındaki 1-10 arası beceri puanlarını günceller, CEFR seviye atlama durumlarını kontrol eder ve motive edici ilerleme raporları oluşturur.
+
+### 3. Aşama: Veritabanı ve RAG Entegrasyonu (AstraDB)
+- İlk aşamada 4 temel beceri (Okuma, Yazma, Dilbilgisi, Kelime Bilgisi) için kullanıcı etkileşimlerini, puanları ve belirli hataları vektör gömmeleri (embeddings) olarak AstraDB'ye kaydetme işlevlerinin uygulanması. (Veritabanı şeması Dinleme becerisini de destekleyecek şekilde genişletilebilir tasarlanacaktır).
+- Ajan 4'ün mevcut bağlama göre ilgili geçmiş hataları çekebilmesi için geri getirme (retrieval) sisteminin uygulanması.
+
+### 4. Aşama: Kullanıcı Arayüzü Geliştirme (Streamlit)
+- Streamlit kullanılarak duyarlı bir web uygulamasının oluşturulması.
+- **Sayfalar/Sekmeler:**
+  - *Katılım/Değerlendirme:* Ajan 1 için başlangıç arayüzü.
+  - *Kontrol Paneli (Dashboard):* Temel becerilerin ve CEFR seviyesinin görselleştirilmesi (Ajan 5).
+  - *Günlük Ders:* Çalışma materyalleri için arayüz (Ajan 2 ve 3).
+  - *Pratik ve Geri Bildirim:* Alıştırmalar için sohbet/form arayüzü ve değerlendirme sonuçları (Ajan 4).
+- *(Faz 2)* İlerleyen aşamalarda bu sekmeye Dinleme egzersizleri ve Metinden Sese (TTS) entegrasyonu eklenecektir.
+
+### 5. Aşama: Entegrasyon ve Test
+- Streamlit arayüzünün LangGraph mimarisine bağlanması.
+- Durumların (state) ajanlar arasında doğru şekilde aktarıldığından emin olmak için uçtan uca (end-to-end) testlerin yapılması.
+- Değerlendirme kriterlerini karşılamak için hata oranlarının ve ajan doğruluğunun ölçülmesi.
+
+---
+
+## ✅ Doğrulama Planı
+
+### Otomatik Testler
+- AstraDB ile veritabanı bağlantısının ve vektör ekleme/getirme işlemlerinin test edilmesi.
+- Ajan çıktılarının doğru istem formatında ve JSON ayrıştırmasında olduğundan emin olmak için OpenRouter API çağrılarında izole birim testlerinin çalıştırılması.
+
+### Manuel Doğrulama
+- Streamlit uygulamasının yerel olarak çalıştırılması (`streamlit run app.py`).
+- Kullanıcı akışının test edilmesi: Başlangıç değerlendirmesini yapma, bir müfredat alma, alıştırmayı tamamlama ve Ajan 4'ün geçmiş hataları RAG ile getirdiğini doğrulamak için bilerek hata yapma.
+- Streamlit kontrol panelinde beceri puanlarının görsel olarak güncellendiğinin doğrulanması.
