@@ -1,3 +1,8 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# pyrefly: ignore [missing-import]
 from astrapy import DataAPIClient
 from config import ASTRA_DB_API_ENDPOINT, ASTRA_DB_APPLICATION_TOKEN
 
@@ -9,3 +14,4 @@ db = client.get_database(
 )
 
 print(f"Connected to Astra DB: {db.list_collection_names()}")
+

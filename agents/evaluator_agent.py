@@ -18,7 +18,7 @@ Student's answers from the conversation:
 Reference material for this level (use these to inform your evaluation):
 {rag_context}
 
-Evaluate the student's performance fairly and provide constructive feedback in Turkish.
+Evaluate the student's performance fairly and provide constructive feedback in English.
 Skill deltas must be integers between -2 and +2 (0 means no change).
 
 {format_instructions}"""
@@ -29,7 +29,7 @@ class EvaluationResult(BaseModel):
     skill_deltas: Dict[str, int] = Field(
         description="Score changes for each skill: grammar, vocabulary, reading, writing. Each value must be -2, -1, 0, 1, or 2."
     )
-    feedback: str = Field(description="Constructive feedback in Turkish (2-3 sentences)")
+    feedback: str = Field(description="Constructive feedback in English (2-3 sentences)")
     correct_answers: int = Field(description="Number of correct answers")
     total_questions: int = Field(description="Total number of questions")
     rag_references: List[str] = Field(description="Topics from reference material that were used")
@@ -59,7 +59,7 @@ def evaluator_node(state: GraphState) -> dict:
             exercises_text += f"   Expected answer: {ex['answer']}\n"
 
     # RAG: müfredat konusuna göre referans doküman çek
-    topic = daily_content.get("grammar_note", "English grammar")
+    topic = state.get("daily_curriculum", {}).get("topic", "English grammar")
     rag_docs = search_similar(query=topic, cefr_level=cefr_level, top_k=3)
     rag_context = "\n".join(f"- {doc['content']}" for doc in rag_docs)
     rag_topics = [doc.get("topic", "") for doc in rag_docs]

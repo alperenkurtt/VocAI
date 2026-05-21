@@ -52,3 +52,17 @@ def complete_session(session_id: str, evaluation: dict) -> None:
         {"_id": session_id},
         {"$set": {"evaluation": evaluation, "completed_at": _now()}},
     )
+
+def get_today_session(user_id: str) -> dict | None:
+    """
+    Kullanıcının bugün oluşturulmuş ve içeriği tamamlanmış oturumunu döner.
+    Varsa yeni ders üretmez, aynı oturumu tekrar kullanır.
+    """
+    today = datetime.now(timezone.utc).date().isoformat()
+    sessions = get_user_sessions(user_id, limit=5)
+    for s in sessions:
+        started_at = s.get("started_at", "")
+        # Bugün açılmış ve içeriği dolu oturumu döndür
+        if started_at.startswith(today) and s.get("content"):
+            return s
+    return None

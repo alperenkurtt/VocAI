@@ -1,7 +1,10 @@
-streamlit
 langchain
 langgraph
 langchain-openai
 langchain-community
 astrapy
 python-dotenv
+fastapi
+uvicorn[standard]
+pydantic>=2.0
+bcrypt

@@ -9,3 +9,5 @@ implementation_plan.md
 VocAI.txt
 notes.txt
 ProposalForm.pdf
+frontend/node_modules/
+frontend/dist/
