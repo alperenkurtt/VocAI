@@ -16,3 +16,4 @@ class GraphState(TypedDict):
     daily_content: Optional[Dict]       # Ajan 3 çıktısı — egzersizler, metinler
     evaluation_result: Optional[Dict]   # Ajan 4 çıktısı — puanlar, geri bildirim
     progress_history: Optional[List]    # Ajan 5 çıktısı — oturum özeti
+    previous_topics: Optional[List]     # Ajan 2 için: daha önce işlenen konu listesi

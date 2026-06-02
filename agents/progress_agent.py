@@ -6,15 +6,33 @@ from database import session_history, user_profiles
 
 LEVEL_ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"]
 
-# --- Seviye atlama kriterleri (CEFR'e uygun, kasıtlı yüksek eşik) ---
-# Son LEVEL_UP_RECENT oturumun ORTALAMASININ bu değerin üstünde olması gerekir
-LEVEL_UP_AVG_SCORE   = 0.78
-# Kontrol edilecek son oturum sayısı
-LEVEL_UP_RECENT      = 7
-# Kullanıcının mevcut seviyede tamamlamış olması gereken minimum oturum sayısı
-LEVEL_UP_MIN_SESSIONS = 15
-# Tüm beceri skorlarının (0-100 skalasında) bu değerin üstünde olması gerekir
-LEVEL_UP_SKILL_MIN   = 68
+# --- Seviye atlama kriterleri (CEFR guided-learning-hours oranlarına göre ölçeklendirildi) ---
+# Kaynak: Council of Europe CEFR (2001, 2020) + Cambridge English resmi eşik tabloları
+#
+# Her seviyenin zorluğu bir öncekinden belirgin şekilde artar:
+#   A1→A2 : ~80 öğrenme saati  (referans nokta)
+#   A2→B1 : ~200 saat          (2.5x)
+#   B1→B2 : ~350 saat          (4.4x)
+#   B2→C1 : ~500 saat          (6.3x)
+#   C1→C2 : ~700 saat          (8.8x)
+#
+# Bu oran farkları aşağıdaki tabloya yansıtıldı:
+#   min_sessions → daha uzun bekleme (daha fazla pratik kanıtı)
+#   avg_score    → daha yüksek başarı eşiği
+#   recent       → tutarlılığın daha uzun pencerede ölçülmesi
+#   skill_min    → tüm becerilerde daha yüksek taban puan
+#
+LEVEL_UP_THRESHOLDS = {
+    # seviye : (min_sessions, avg_score, recent_window, skill_min)
+    "A1": {"min_sessions": 15, "avg_score": 0.75, "recent": 5,  "skill_min": 62},
+    "A2": {"min_sessions": 20, "avg_score": 0.78, "recent": 7,  "skill_min": 66},
+    "B1": {"min_sessions": 28, "avg_score": 0.80, "recent": 8,  "skill_min": 70},
+    "B2": {"min_sessions": 40, "avg_score": 0.83, "recent": 10, "skill_min": 75},
+    "C1": {"min_sessions": 55, "avg_score": 0.86, "recent": 12, "skill_min": 82},
+}
+
+# C2'den yukarısı yok; geriye dönük uyumluluk için varsayılan
+_DEFAULT_THRESHOLD = {"min_sessions": 15, "avg_score": 0.78, "recent": 7, "skill_min": 68}
 
 
 class SessionSummary(BaseModel):
@@ -36,31 +54,40 @@ def _check_level_up(
     total_sessions: int,
 ) -> Optional[str]:
     """
-    Seviye atlama için tüm kriterlerin karşılanması gerekir:
-    1. Yeterli toplam oturum sayısı
-    2. Son N oturumun yüksek ortalama skoru
-    3. Tüm beceri skorlarının belirli eşiğin üstünde olması
+    Seviye atlama için tüm kriterlerin karşılanması gerekir.
+    Eşikler CEFR'in guided-learning-hours oranlarına göre seviyeye göre değişir.
+
+    1. Mevcut seviye için minimum oturum sayısı
+    2. Son N oturumun (seviyeye göre değişen pencere) yüksek ortalama skoru
+    3. Tüm beceri skorlarının seviyeye özgü eşiğin üstünde olması
     """
-    # Kriter 1: Minimum oturum sayısı
-    if total_sessions < LEVEL_UP_MIN_SESSIONS:
+    # Mevcut seviyenin eşik tablosunu al; tanımsız seviye için varsayılanı kullan
+    thresholds = LEVEL_UP_THRESHOLDS.get(current_level, _DEFAULT_THRESHOLD)
+    min_sessions = thresholds["min_sessions"]
+    avg_score_thresh = thresholds["avg_score"]
+    recent_window = thresholds["recent"]
+    skill_min = thresholds["skill_min"]
+
+    # Kriter 1: Mevcut seviyede tamamlanan minimum oturum sayısı
+    if total_sessions < min_sessions:
         return None
 
-    # Kriter 2: Son LEVEL_UP_RECENT oturumun ortalama skoru
-    recent = sessions[:LEVEL_UP_RECENT]
+    # Kriter 2: Son recent_window oturumun ortalama skoru
+    recent = sessions[:recent_window]
     scores = [
         s.get("evaluation", {}).get("overall_score", 0)
         for s in recent
         if s.get("evaluation")
     ]
-    if len(scores) < LEVEL_UP_RECENT:
+    if len(scores) < recent_window:
         return None
-    avg_score = sum(scores) / len(scores)
-    if avg_score < LEVEL_UP_AVG_SCORE:
+    avg_score = round(sum(scores) / len(scores), 4)
+    if avg_score < avg_score_thresh:
         return None
 
-    # Kriter 3: Tüm beceri skorları eşiğin üstünde olmalı
+    # Kriter 3: Tüm beceri skorları seviyeye özgü eşiğin üstünde olmalı
     if skill_scores:
-        weak_skills = [k for k, v in skill_scores.items() if v < LEVEL_UP_SKILL_MIN]
+        weak_skills = [k for k, v in skill_scores.items() if v < skill_min]
         if weak_skills:
             return None
 
@@ -96,8 +123,9 @@ def progress_tracker_node(state: GraphState) -> dict:
     current_skill_scores = profile.get("skill_scores", {}) if profile else {}
     total_sessions = profile.get("total_sessions", 0) if profile else 0
 
-    # Son oturumları çek, seviye atlama kontrolü yap
-    recent_sessions = session_history.get_user_sessions(user_id, limit=LEVEL_UP_RECENT) if user_id else []
+    # Son oturumları çek — pencere boyutunu mevcut seviyenin eşiğinden al
+    _window = LEVEL_UP_THRESHOLDS.get(cefr_level, _DEFAULT_THRESHOLD)["recent"]
+    recent_sessions = session_history.get_user_sessions(user_id, limit=_window) if user_id else []
     level_up = _check_level_up(recent_sessions, cefr_level, current_skill_scores, total_sessions)
 
     summary = SessionSummary(

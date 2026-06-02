@@ -26,7 +26,21 @@ def get_today_lesson(user_id: str):
 
     # Seviye yoksa B1 varsayılan
     cefr_level = profile.get("cefr_level") or "B1"
-    base_state = {"user_id": user_id, "cefr_level": cefr_level, "messages": []}
+
+    # Son 10 oturumdan işlenen konuları çek — yeni ders bunları tekrar etmesin
+    recent_sessions = session_history.get_user_sessions(user_id, limit=10)
+    previous_topics = [
+        s["curriculum"]["topic"]
+        for s in recent_sessions
+        if s.get("curriculum") and s["curriculum"].get("topic")
+    ]
+
+    base_state = {
+        "user_id": user_id,
+        "cefr_level": cefr_level,
+        "messages": [],
+        "previous_topics": previous_topics,
+    }
 
     # Ajan 2: Müfredat
     curriculum = curriculum_planner_node(base_state)["daily_curriculum"]

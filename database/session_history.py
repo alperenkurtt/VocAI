@@ -62,7 +62,8 @@ def get_today_session(user_id: str) -> dict | None:
     sessions = get_user_sessions(user_id, limit=5)
     for s in sessions:
         started_at = s.get("started_at", "")
-        # Bugün açılmış ve içeriği dolu oturumu döndür
-        if started_at.startswith(today) and s.get("content"):
+        # Bugün açılmış, içeriği dolu ve henüz tamamlanmamış oturumu döndür
+        # Tamamlanmış oturum varsa yeni içerik üretilmesine izin ver
+        if started_at.startswith(today) and s.get("content") and not s.get("completed_at"):
             return s
     return None

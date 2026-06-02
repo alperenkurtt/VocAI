@@ -14,6 +14,8 @@ Skills to practice: {focus_skills}
 Objectives: {objectives}
 
 Create engaging, level-appropriate content. Keep language complexity suitable for the CEFR level.
+IMPORTANT: All sentences, vocabulary, and examples must be UNIQUE and directly tied to today's theme.
+Do NOT reuse generic filler sentences. Every exercise must feel fresh and thematically coherent.
 
 EXERCISE REQUIREMENTS — create EXACTLY 10 exercises in this order:
   1-4:  fill_in_blank   (4 exercises) — one blank per sentence, provide the correct word as answer

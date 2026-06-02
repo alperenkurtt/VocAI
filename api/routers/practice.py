@@ -40,6 +40,9 @@ def submit_practice(body: PracticeSubmitRequest):
     # Ajan 5: İlerleme
     progress_result = progress_tracker_node(state)
 
+    # Oturumu tamamlandı olarak işaretle — bir sonraki pratik yeni içerik üretir
+    session_history.complete_session(body.session_id, eval_result["evaluation_result"])
+
     return PracticeResult(
         evaluation=eval_result["evaluation_result"],
         progress=progress_result["progress_history"][0],
