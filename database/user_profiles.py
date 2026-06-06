@@ -98,3 +98,20 @@ def increment_session_count(user_id: str) -> None:
             "last_active": _now(),
         }},
     )
+
+def set_initial_skill_scores(user_id: str, scores: dict) -> None:
+    """Ajan 1 tamamlandıktan sonra gerçek konuşmadan ölçülen ilk skorları yazar (0-25 skala)."""
+    _col().update_one(
+        {"_id": user_id},
+        {"$set": {"skill_scores": scores, "last_active": _now()}},
+    )
+
+def delete_user(user_id: str) -> bool:
+    """Kullanıcıyı siler. Başarılıysa True, bulunamazsa False döner."""
+    result = _col().delete_one({"_id": user_id})
+    return result.deleted_count > 0
+
+def delete_user_by_username(username: str) -> bool:
+    """Kullanıcı adına göre siler. Başarılıysa True döner."""
+    result = _col().delete_one({"username": username})
+    return result.deleted_count > 0

@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional
 from config import llm
 from state import GraphState
@@ -33,7 +33,10 @@ For multiple_choice exercises, options must be a list of exactly 4 strings, each
 class Exercise(BaseModel):
     type: str = Field(description="One of: fill_in_blank, multiple_choice, writing_prompt")
     instruction: str = Field(description="Clear instruction for the student in English")
-    content: str = Field(description="The exercise text, sentence with blank, or writing topic")
+    content: Optional[str] = Field(
+        default=None,
+        description="The exercise text, sentence with blank, or writing topic. For writing_prompt: the topic to write about."
+    )
     answer: Optional[str] = Field(
         default=None,
         description="For fill_in_blank: the correct word. For multiple_choice: just the letter (A/B/C/D). For writing_prompt: null."
@@ -42,6 +45,12 @@ class Exercise(BaseModel):
         default=None,
         description="For multiple_choice only: exactly 4 strings like ['A) option', 'B) option', 'C) option', 'D) option']. Null for other types."
     )
+
+    @model_validator(mode="after")
+    def fill_content(self):
+        if not self.content:
+            self.content = self.instruction
+        return self
 
 
 class DailyContent(BaseModel):

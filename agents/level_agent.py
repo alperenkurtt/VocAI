@@ -4,6 +4,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from config import llm
 from state import GraphState
 
+_LEVEL_PATTERN = re.compile(r"LEVEL_DETERMINED:\s*(A1|A2|B1|B2|C1|C2)")
+_SKILL_PATTERN = re.compile(
+    r"SKILL_SCORES:\s*grammar=(\d+)\s+vocabulary=(\d+)\s+reading=(\d+)\s+writing=(\d+)"
+)
+
 system_prompt = """You are an expert English language assessor using the CEFR framework.
 
 CEFR CRITERIA:
@@ -59,10 +64,23 @@ ASSESSMENT RULES:
 5. Do NOT determine the level before the 3rd answer.
 6. After at least 3 answers, when confident, append EXACTLY this at the end of your response:
    LEVEL_DETERMINED: [LEVEL]
+   SKILL_SCORES: grammar=[0-25] vocabulary=[0-25] reading=[0-25] writing=[0-25]
    Example: LEVEL_DETERMINED: B1
+            SKILL_SCORES: grammar=18 vocabulary=20 reading=14 writing=15
 
-You can use Turkish only to give brief instructions at the very start. All questions must be in English.
+SKILL SCORING GUIDE (0-25 scale):
+- grammar   : accuracy of tense, subject-verb agreement, sentence structure
+              (0-6: many basic errors, 7-12: frequent errors, 13-18: occasional errors, 19-25: near accurate)
+- vocabulary: range and appropriateness of word choice
+              (0-6: very limited, 7-12: basic words only, 13-18: adequate range, 19-25: rich and precise)
+- reading   : how well each answer addresses the question asked — did the student understand what was asked?
+              (0-6: answers unrelated to questions, 7-12: partially understood, 13-18: mostly understood, 19-25: fully understood)
+- writing   : sentence complexity, idea flow, and coherence across responses
+              (0-6: isolated words/fragments, 7-12: simple sentences only, 13-18: some complex structures, 19-25: well-structured)
+
+All questions must be in English.
 """
+# You can use Turkish only to give brief instructions at the very start. 
 
 def level_detection_node(state: GraphState):
     """
@@ -82,18 +100,31 @@ def level_detection_node(state: GraphState):
     content = response.content
     cefr_level = state.get("cefr_level", "")
     assessment_complete = state.get("assessment_complete", False)
+    initial_skill_scores = state.get("initial_skill_scores")
 
     final_message = response
-    match = re.search(r"LEVEL_DETERMINED:\s*(A1|A2|B1|B2|C1|C2)", content)
-    if match:
-        cefr_level = match.group(1)
+    level_match = _LEVEL_PATTERN.search(content)
+    if level_match:
+        cefr_level = level_match.group(1)
         assessment_complete = True
-        # LEVEL_DETERMINED tag'ini kullanıcıya gösterme
-        clean_content = re.sub(r"\s*LEVEL_DETERMINED:\s*(A1|A2|B1|B2|C1|C2)", "", content).strip()
+
+        skill_match = _SKILL_PATTERN.search(content)
+        if skill_match:
+            initial_skill_scores = {
+                "grammar":    min(25, int(skill_match.group(1))),
+                "vocabulary": min(25, int(skill_match.group(2))),
+                "reading":    min(25, int(skill_match.group(3))),
+                "writing":    min(25, int(skill_match.group(4))),
+            }
+
+        # LEVEL_DETERMINED ve SKILL_SCORES tag'lerini kullanıcıya gösterme
+        clean_content = _LEVEL_PATTERN.sub("", content)
+        clean_content = _SKILL_PATTERN.sub("", clean_content).strip()
         final_message = AIMessage(content=f"{clean_content}\n\n---\nHarika! İngilizce seviyeni **{cefr_level}** olarak belirledim. Artık senin için müfredat planlayabiliriz.")
 
     return {
         "messages": [final_message],
         "cefr_level": cefr_level,
-        "assessment_complete": assessment_complete
+        "assessment_complete": assessment_complete,
+        "initial_skill_scores": initial_skill_scores,
     }

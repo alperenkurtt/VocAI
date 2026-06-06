@@ -47,10 +47,10 @@ function ExerciseCard({ exercise, index, answer, onChange, submitted }) {
 
   return (
     <div className={`bg-white border rounded-xl p-5 shadow-sm transition ${
-      submitted && exercise.type !== 'writing_prompt'
-        ? exercise.answer && answer === exercise.answer
-          ? 'border-green-200'
-          : 'border-gray-100'
+      submitted && exercise.type !== 'writing_prompt' && exercise.answer
+        ? answer.trim().toLowerCase() === exercise.answer.trim().toLowerCase()
+          ? 'border-green-300'
+          : 'border-red-300'
         : 'border-gray-100'
     }`}>
       <div className="flex items-start gap-3 mb-3">
@@ -102,22 +102,34 @@ function ExerciseCard({ exercise, index, answer, onChange, submitted }) {
       )}
 
       {/* After submit: show answer for non-MC types */}
-      {submitted && exercise.type !== 'multiple_choice' && (
-        <div className="space-y-2 mt-1">
-          <div className="rounded-lg px-3 py-2 bg-gray-50 border border-gray-200">
-            <p className="text-xs text-gray-400 mb-1">Your answer</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {answer || <span className="italic text-gray-400">No answer</span>}
-            </p>
-          </div>
-          {exercise.answer && (
-            <div className="rounded-lg px-3 py-2 bg-green-50 border border-green-200">
-              <p className="text-xs text-green-600 mb-1">Correct answer</p>
-              <p className="text-sm text-green-800">{exercise.answer}</p>
+      {submitted && exercise.type !== 'multiple_choice' && (() => {
+        const isWriting = exercise.type === 'writing_prompt'
+        const isCorrect = !isWriting && exercise.answer &&
+          answer.trim().toLowerCase() === exercise.answer.trim().toLowerCase()
+        const isWrong = !isWriting && exercise.answer && !isCorrect
+
+        return (
+          <div className="space-y-2 mt-1">
+            <div className={`rounded-lg px-3 py-2 border ${
+              isWriting ? 'bg-gray-50 border-gray-200' :
+              isCorrect ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
+            }`}>
+              <p className={`text-xs mb-1 ${isWriting ? 'text-gray-400' : isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+                Your answer
+              </p>
+              <p className={`text-sm whitespace-pre-wrap ${isWriting ? 'text-gray-700' : isCorrect ? 'text-green-800' : 'text-red-700'}`}>
+                {answer || <span className="italic text-gray-400">No answer</span>}
+              </p>
             </div>
-          )}
-        </div>
-      )}
+            {isWrong && exercise.answer && (
+              <div className="rounded-lg px-3 py-2 bg-green-50 border border-green-200">
+                <p className="text-xs text-green-600 mb-1">Correct answer</p>
+                <p className="text-sm text-green-800">{exercise.answer}</p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -172,10 +184,16 @@ export default function PracticePage() {
 
   const evaluation = result?.evaluation || {}
   const progress = result?.progress || {}
-  const scorePercent = Math.round((evaluation.overall_score ?? 0) * 100)
   const feedback = evaluation.feedback || ''
-  const correctAnswers = evaluation.correct_answers ?? 0
-  const totalQuestions = evaluation.total_questions ?? exercises.length
+  // Toplam 10 egzersiz üzerinden hesapla — writing_prompt 0 doğru sayılır
+  const totalQuestions = exercises.length
+  const correctAnswers = exercises.reduce((count, ex, i) => {
+    if (ex.type === 'writing_prompt') return count
+    const userAnswer = (answers[i] || '').trim().toLowerCase()
+    const correct = (ex.answer || '').trim().toLowerCase()
+    return count + (correct && userAnswer === correct ? 1 : 0)
+  }, 0)
+  const scorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
 
   // Skora göre renk
   const scoreColor = scorePercent >= 80 ? 'text-green-600' : scorePercent >= 60 ? 'text-amber-500' : 'text-red-500'

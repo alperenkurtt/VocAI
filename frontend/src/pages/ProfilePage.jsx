@@ -41,13 +41,21 @@ function SkillBar({ skillKey, score }) {
   )
 }
 
-const REQUIREMENTS = { min_sessions: 15, avg_score_pct: 78, skill_min: 68 }
+const LEVEL_UP_THRESHOLDS = {
+  A1: { min_sessions: 15, avg_score_pct: 75, recent: 5,  skill_min: 62 },
+  A2: { min_sessions: 20, avg_score_pct: 78, recent: 7,  skill_min: 66 },
+  B1: { min_sessions: 28, avg_score_pct: 80, recent: 8,  skill_min: 70 },
+  B2: { min_sessions: 40, avg_score_pct: 83, recent: 10, skill_min: 75 },
+  C1: { min_sessions: 55, avg_score_pct: 86, recent: 12, skill_min: 82 },
+}
 
 function LevelProgress({ profile }) {
+  const level = profile.cefr_level || 'A1'
+  const req = LEVEL_UP_THRESHOLDS[level] || LEVEL_UP_THRESHOLDS.A1
   const sessions = profile.total_sessions || 0
   const skills = profile.skill_scores || {}
-  const weakSkills = Object.entries(skills).filter(([, v]) => v < REQUIREMENTS.skill_min)
-  const sessionsOk = sessions >= REQUIREMENTS.min_sessions
+  const weakSkills = Object.entries(skills).filter(([, v]) => v < req.skill_min)
+  const sessionsOk = sessions >= req.min_sessions
   const skillsOk = weakSkills.length === 0
 
   const Tick = ({ ok }) => (
@@ -63,22 +71,22 @@ function LevelProgress({ profile }) {
         <div className="flex items-center gap-3">
           <Tick ok={sessionsOk} />
           <span className="text-sm text-gray-700">
-            At least {REQUIREMENTS.min_sessions} practice sessions
+            At least {req.min_sessions} practice sessions
             <span className={`ml-2 font-semibold ${sessionsOk ? 'text-green-600' : 'text-gray-400'}`}>
-              ({sessions}/{REQUIREMENTS.min_sessions})
+              ({sessions}/{req.min_sessions})
             </span>
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Tick ok={false} />
           <span className="text-sm text-gray-700">
-            {REQUIREMENTS.avg_score_pct}%+ average on last 7 sessions
+            {req.avg_score_pct}%+ average on last {req.recent} sessions
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Tick ok={skillsOk} />
           <span className="text-sm text-gray-700">
-            All skills above {REQUIREMENTS.skill_min}
+            All skills above {req.skill_min}
             {weakSkills.length > 0 && (
               <span className="ml-2 text-amber-600 text-xs">
                 (Needs improvement: {weakSkills.map(([k]) => k).join(', ')})

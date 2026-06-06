@@ -13,12 +13,15 @@ from api.models import (
 from api import session_store
 from agents.level_agent import system_prompt as LEVEL_SYSTEM_PROMPT
 from config import llm
-from database.user_profiles import get_user_profile, update_cefr_level
+from database.user_profiles import get_user_profile, update_cefr_level, set_initial_skill_scores
 
 router = APIRouter()
 
 # --- Regular assessment patterns ---
 _LEVEL_PATTERN = re.compile(r"\s*LEVEL_DETERMINED:\s*(A1|A2|B1|B2|C1|C2)")
+_SKILL_PATTERN = re.compile(
+    r"SKILL_SCORES:\s*grammar=(\d+)\s+vocabulary=(\d+)\s+reading=(\d+)\s+writing=(\d+)"
+)
 
 # --- Level-up assessment patterns ---
 _CONFIRMED_PATTERN = re.compile(r"\s*LEVEL_CONFIRMED:\s*(A1|A2|B1|B2|C1|C2)")
@@ -119,7 +122,20 @@ async def send_message(body: AssessmentMessageRequest):
         match = _LEVEL_PATTERN.search(full_content)
         if match:
             cefr_level = match.group(1)
-            clean = _LEVEL_PATTERN.sub("", full_content).strip()
+            clean = _LEVEL_PATTERN.sub("", full_content)
+
+            skill_match = _SKILL_PATTERN.search(clean)
+            if skill_match:
+                scores = {
+                    "grammar":    min(25, int(skill_match.group(1))),
+                    "vocabulary": min(25, int(skill_match.group(2))),
+                    "reading":    min(25, int(skill_match.group(3))),
+                    "writing":    min(25, int(skill_match.group(4))),
+                }
+                set_initial_skill_scores(body.user_id, scores)
+                clean = _SKILL_PATTERN.sub("", clean)
+
+            clean = clean.strip()
             final_msg = f"{clean}\n\n---\nGreat! Your English level has been determined as **{cefr_level}**."
 
             session_store.add_ai_message(body.session_id, final_msg)
