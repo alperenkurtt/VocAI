@@ -42,17 +42,17 @@ function SkillBar({ skillKey, score }) {
 }
 
 const LEVEL_UP_THRESHOLDS = {
-  A1: { min_sessions: 15, avg_score_pct: 75, recent: 5,  skill_min: 62 },
-  A2: { min_sessions: 20, avg_score_pct: 78, recent: 7,  skill_min: 66 },
-  B1: { min_sessions: 28, avg_score_pct: 80, recent: 8,  skill_min: 70 },
-  B2: { min_sessions: 40, avg_score_pct: 83, recent: 10, skill_min: 75 },
-  C1: { min_sessions: 55, avg_score_pct: 86, recent: 12, skill_min: 82 },
+  A1: { min_sessions: 8,  avg_score_pct: 72, recent: 5,  skill_min: 45 },
+  A2: { min_sessions: 10, avg_score_pct: 74, recent: 6,  skill_min: 55 },
+  B1: { min_sessions: 12, avg_score_pct: 76, recent: 7,  skill_min: 65 },
+  B2: { min_sessions: 15, avg_score_pct: 78, recent: 8,  skill_min: 75 },
+  C1: { min_sessions: 18, avg_score_pct: 81, recent: 10, skill_min: 85 },
 }
 
 function LevelProgress({ profile }) {
   const level = profile.cefr_level || 'A1'
   const req = LEVEL_UP_THRESHOLDS[level] || LEVEL_UP_THRESHOLDS.A1
-  const sessions = profile.total_sessions || 0
+  const sessions = profile.sessions_at_current_level ?? profile.total_sessions ?? 0
   const skills = profile.skill_scores || {}
   const weakSkills = Object.entries(skills).filter(([, v]) => v < req.skill_min)
   const sessionsOk = sessions >= req.min_sessions

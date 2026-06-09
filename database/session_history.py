@@ -39,6 +39,16 @@ def get_user_sessions(user_id: str, limit: int = 5) -> list[dict]:
     )
     return list(cursor)
 
+
+def get_user_sessions_by_level(user_id: str, cefr_level: str, limit: int = 15) -> list[dict]:
+    """Belirli CEFR seviyesindeki son N oturumu döner (rolling window için level filtresi)."""
+    cursor = _col().find(
+        {"user_id": user_id, "cefr_level": cefr_level},
+        sort={"started_at": -1},
+        limit=limit,
+    )
+    return list(cursor)
+
 def update_session_content(session_id: str, content: dict) -> None:
     """Ajan 3 içerik ürettikten sonra oturuma kaydeder."""
     _col().update_one(

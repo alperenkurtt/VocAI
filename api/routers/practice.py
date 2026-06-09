@@ -43,7 +43,17 @@ def submit_practice(body: PracticeSubmitRequest):
     # Oturumu tamamlandı olarak işaretle — bir sonraki pratik yeni içerik üretir
     session_history.complete_session(body.session_id, eval_result["evaluation_result"])
 
+    progress_summary = progress_result["progress_history"][0]
+    level_up_applied = progress_summary.get("level_up_applied")
+
+    congratulations_message = None
+    if level_up_applied:
+        username = profile.get("username", "")
+        congratulations_message = f"Congratulations {username}! You've reached {level_up_applied}."
+
     return PracticeResult(
         evaluation=eval_result["evaluation_result"],
-        progress=progress_result["progress_history"][0],
+        progress=progress_summary,
+        level_up_applied=level_up_applied,
+        congratulations_message=congratulations_message,
     )

@@ -170,6 +170,12 @@ export default function PracticePage() {
       const res = await api.submitPractice(sessionId, user.user_id, answers)
       setResult(res)
       setSubmitted(true)
+      // Level atlandıysa localStorage'ı güncelle
+      if (res.level_up_applied) {
+        const newLevel = res.level_up_applied.split('→').pop().trim()
+        const updatedUser = { ...user, cefr_level: newLevel }
+        localStorage.setItem('vocai_user', JSON.stringify(updatedUser))
+      }
     } catch (e) {
       setError(e.message)
     } finally {
@@ -278,8 +284,21 @@ export default function PracticePage() {
               </div>
             )}
 
-            {/* Level up */}
-            {progress.level_up_recommendation && (() => {
+            {/* Tebrik — level atlandı */}
+            {result.level_up_applied && (
+              <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-amber-200 rounded-2xl p-6 text-center shadow-sm">
+                <p className="text-3xl mb-2">🎉</p>
+                <p className="text-lg font-bold text-amber-800 mb-1">
+                  {result.congratulations_message || `Tebrikler! ${result.level_up_applied} seviyesine ulaştın.`}
+                </p>
+                <p className="text-sm text-amber-600">
+                  New lessons suited to your level are waiting for you.
+                </p>
+              </div>
+            )}
+
+            {/* Level up onay aşaması */}
+            {!result.level_up_applied && progress.level_up_recommendation && (() => {
               // "B1 → B2" formatından hedef seviyeyi çıkar
               const target = progress.level_up_recommendation.split('→').pop().trim()
               return (

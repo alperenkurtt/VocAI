@@ -21,6 +21,22 @@ Reference material for this level (use these to inform your evaluation):
 Evaluate the student's performance fairly and provide constructive feedback in English.
 Skill deltas must be integers between -2 and +2 (0 means no change).
 
+LEVEL READINESS SCORING GUIDE:
+- next_level_readiness (0.0–1.0): Evidence the student is ready for the NEXT CEFR level.
+  • A1 student → A2: Uses multi-word phrases, basic connectors (and/but/because), simple past attempts.
+  • A2 student → B1: Produces short paragraphs, explains reasons, handles past/present/future.
+  • B1 student → B2: Uses conditionals (2nd/3rd), passive voice, relative clauses, B2-register vocabulary,
+    argues both sides of an abstract topic, hedges opinions ("I think", "It seems").
+  • B2 student → C1: Uses inversion, nominalization, precise collocations, sustains complex argument.
+  • C1 student → C2: Near-native idiom, register shifts, sophisticated irony/nuance.
+  Score 0.0 if student struggles at current level. Score 1.0 only if every answer shows clear next-level mastery.
+
+- structural_complexity (1–5): Syntactic complexity observed across answers.
+  1=fragments or isolated words only, 2=simple sentences only,
+  3=at least one complex/compound structure used correctly,
+  4=consistent use of subordination and varied structures,
+  5=embedded clauses, inversion, nominalization, or multiple clause types sustained throughout.
+
 {format_instructions}"""
 
 
@@ -33,6 +49,12 @@ class EvaluationResult(BaseModel):
     correct_answers: int = Field(description="Number of correct answers")
     total_questions: int = Field(description="Total number of questions")
     rag_references: List[str] = Field(description="Topics from reference material that were used")
+    next_level_readiness: float = Field(
+        description="Score 0.0–1.0: readiness for the next CEFR level based on structures and vocabulary observed."
+    )
+    structural_complexity: int = Field(
+        description="1–5: syntactic complexity observed in student answers. See scoring guide."
+    )
 
 
 def evaluator_node(state: GraphState) -> dict:

@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
     cefr_level: str
     skill_scores: Dict[str, int]
     total_sessions: int
+    sessions_at_current_level: int = 0
 
 
 class AssessmentStartRequest(BaseModel):
@@ -50,6 +51,8 @@ class PracticeSubmitRequest(BaseModel):
 class PracticeResult(BaseModel):
     evaluation: Dict
     progress: Dict
+    level_up_applied: Optional[str] = None
+    congratulations_message: Optional[str] = None
 
 
 class LevelUpStartRequest(BaseModel):

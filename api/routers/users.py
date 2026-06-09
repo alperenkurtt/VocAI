@@ -21,6 +21,7 @@ def register(body: RegisterRequest):
         cefr_level=profile["cefr_level"],
         skill_scores=profile["skill_scores"],
         total_sessions=profile["total_sessions"],
+        sessions_at_current_level=profile.get("sessions_at_current_level", 0),
     )
 
 
@@ -35,6 +36,7 @@ def login(body: LoginRequest):
         cefr_level=profile["cefr_level"],
         skill_scores=profile["skill_scores"],
         total_sessions=profile["total_sessions"],
+        sessions_at_current_level=profile.get("sessions_at_current_level", 0),
     )
 
 
@@ -49,4 +51,5 @@ def get_user(user_id: str):
         cefr_level=profile["cefr_level"],
         skill_scores=profile["skill_scores"],
         total_sessions=profile["total_sessions"],
+        sessions_at_current_level=profile.get("sessions_at_current_level", 0),
     )
